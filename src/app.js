@@ -2,8 +2,12 @@ const express = require('express');
 
 const app = express()
 
-app.use('/test', (req,res)=>{
+app.post('/test', (req,res)=>{
     res.send("testing")
+})
+
+app.get('/test', (req,res)=>{
+    res.send({name:'mbyr', age:24})
 })
 
 app.use('/', (req,res)=>{
