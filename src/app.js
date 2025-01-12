@@ -1,13 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const {connectDB} = require('./config/database')
 const {User} = require('./models/user')
 const {validateSignUpData} = require('./utils/validation.js')
-
+const {userAuth} = require('./middlewares/auth');
 
 const app = express()
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post('/signup', async (req,res)=>{
     try{
@@ -27,6 +30,25 @@ app.post('/signup', async (req,res)=>{
     }
 });
 
+app.post('/sendConnectionRequest', userAuth, async (req,res)=>{
+
+    console.log('sending connection request');
+
+    res.send("connection request send");
+})
+
+app.get('/profile', userAuth, async (req, res) => {
+    try{
+        user = req.user;
+        if(!user){
+            throw new Error('User not found, login again');
+        }
+        res.send(user);
+    }catch(err){
+        res.status(400).send("Error message: "+ err.message);
+    }
+})
+
 app.post('/login', async (req,res)=>{
     try{
         const {emailId, password} = req.body;
@@ -34,9 +56,14 @@ app.post('/login', async (req,res)=>{
         if(!user){
             throw new Error('Invalid Credentials');
         }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await user.validatePassword(password);
 
         if(isPasswordValid){
+
+            const token = await user.getJWT();
+            console.log(token);
+
+            res.cookie('token',token);
             res.send('Logged in successfully');
         }else{
             res.status(400).send('Invalid credentials');
